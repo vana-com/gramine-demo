@@ -1,12 +1,9 @@
 import docker
-import time
 import json
 import os
-import atexit
 import signal
 import sys
 import logging
-from collections import deque
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,7 +21,8 @@ except docker.errors.DockerException as e:
 active_validators = {}
 
 def get_or_create_validator(validator_type):
-    container_name = f'{validator_type}-proof'
+    sgx_enabled = os.environ.get('SGX_ENABLED') == 'true'
+    container_name = f'gsc-{validator_type}-proof' if sgx_enabled else f'{validator_type}-proof'
     
     # Check if a container with the given name already exists
     existing_containers = client.containers.list(all=True, filters={'name': container_name})
@@ -43,13 +41,27 @@ def get_or_create_validator(validator_type):
         oldest_validator.remove()
         logger.info(f"Removed oldest validator: {oldest_type}")
 
-    validator = client.containers.run(
-        f'{validator_type}-proof',
-        detach=True,
-        name=container_name,
-        stdin_open=True,
-        tty=True
-    )
+    # Prepare SGX-specific configurations
+    devices = ['/dev/sgx_enclave:/dev/sgx_enclave'] if sgx_enabled else None
+    volumes = {'/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'}} if sgx_enabled else None
+    environment = {'SGX_AESM_ADDR': '1'} if sgx_enabled else None
+
+    # Remove None values to avoid empty specs
+    run_kwargs = {
+        'image': f'gsc-{validator_type}-proof' if sgx_enabled else f'{validator_type}-proof',
+        'detach': True,
+        'name': container_name,
+        'stdin_open': True,
+        'tty': True,
+    }
+    if devices:
+        run_kwargs['devices'] = devices
+    if volumes:
+        run_kwargs['volumes'] = volumes
+    if environment:
+        run_kwargs['environment'] = environment
+
+    validator = client.containers.run(**run_kwargs)
     
     active_validators[validator_type] = validator
     logger.info(f"Created new validator: {validator_type}")
@@ -64,7 +76,7 @@ def process_task(task):
     task_data = json.dumps(data)
     
     exec_result = validator.exec_run(
-        cmd=["sh", "-c", f"echo '{task_data}' | python /app/validate.py"],
+        cmd=["/bin/sh", "-c", f"echo '{task_data}' | python /validate.py"],
         stdout=True,
         stderr=True
     )
@@ -88,7 +100,7 @@ def process_task(task):
 def cleanup(signum=None, frame=None):
     logger.info("Starting cleanup process")
     for validator_type in list(active_validators.keys()):
-        container_name = f'{validator_type}-proof'
+        container_name = f'gsc-{validator_type}-proof' if os.environ.get('SGX_ENABLED') == 'true' else f'{validator_type}-proof'
         try:
             container = client.containers.get(container_name)
             logger.info(f"Stopping validator {container.name}")
