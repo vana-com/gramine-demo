@@ -57,3 +57,9 @@ RUN apt-get update && \
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["poetry", "run", "python3", "-m", "proof_node"]
+
+# Final stage
+ARG SGX=false
+FROM ${SGX:+sgx}${SGX:-non-sgx}
+
+# The rest of your final stage configuration

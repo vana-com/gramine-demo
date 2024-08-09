@@ -21,7 +21,7 @@ except docker.errors.DockerException as e:
 active_validators = {}
 
 def get_or_create_validator(validator_type):
-    sgx_enabled = os.environ.get('SGX_ENABLED') == 'true'
+    sgx_enabled = os.environ.get('SGX') == 'true'
     container_name = f'gsc-{validator_type}-proof' if sgx_enabled else f'{validator_type}-proof'
     
     # Check if a container with the given name already exists
@@ -78,7 +78,7 @@ def process_task(task):
     exec_result = validator.exec_run(
         cmd=["/bin/sh", "-c", f"echo '{task_data}' | python /validate.py"],
         stdout=True,
-        stderr=True
+        stderr=True,
     )
     
     output = exec_result.output.decode().strip()
@@ -100,7 +100,7 @@ def process_task(task):
 def cleanup(signum=None, frame=None):
     logger.info("Starting cleanup process")
     for validator_type in list(active_validators.keys()):
-        container_name = f'gsc-{validator_type}-proof' if os.environ.get('SGX_ENABLED') == 'true' else f'{validator_type}-proof'
+        container_name = f'gsc-{validator_type}-proof' if os.environ.get('SGX') == 'true' else f'{validator_type}-proof'
         try:
             container = client.containers.get(container_name)
             logger.info(f"Stopping validator {container.name}")

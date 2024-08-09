@@ -3,20 +3,20 @@ services:
     build:
       context: ./proof-node
       args:
-        - BUILD_TYPE=${SGX_ENABLED:-false}
-    image: ${SGX_ENABLED:+sgx_}proof_node
-    container_name: ${SGX_ENABLED:+sgx_}proof_node
+        - SGX=${SGX:-false}
+    image: ${SGX:+sgx_}proof_node
+    container_name: ${SGX:+sgx_}proof_node
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${SGX_DEVICE:-/dev/null}:/dev/sgx_enclave
-      - ${AESMD_SOCKET:-/dev/null}:/var/run/aesmd
+      - ${SGX_DEVICE:-${SGX:+/dev/sgx_enclave:/dev/sgx_enclave}/dev/null:/dev/sgx_enclave}
+      - ${AESMD_SOCKET:-${SGX:+/var/run/aesmd/aesm.socket:/var/run/aesmd}/dev/null:/var/run/aesmd}
     devices:
-      - ${SGX_DEVICE:-/dev/null}:/dev/sgx
+      - ${SGX_DEVICE:-${SGX:+/dev/sgx:/dev/sgx}/dev/null:/dev/sgx}
     environment:
       - MAX_VALIDATORS=3
       - DOCKER_HOST=unix:///var/run/docker.sock
-      - SGX_ENABLED=${SGX_ENABLED:-false}
-      - SGX_AESM_ADDR=${SGX_AESM_ADDR:-0}
+      - SGX=${SGX:-false}
+      - SGX_AESM_ADDR=${SGX_AESM_ADDR:-${SGX:+1}0}
     logging:
       driver: "json-file"
       options:
