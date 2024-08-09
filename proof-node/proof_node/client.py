@@ -32,6 +32,7 @@ def get_or_create_validator(validator_type):
         if container.status != 'running':
             container.start()
         logger.info(f"Reusing existing validator: {container_name}")
+        active_validators[validator_type] = container
         return container
     
     if len(active_validators) >= MAX_VALIDATORS:
@@ -53,6 +54,7 @@ def get_or_create_validator(validator_type):
         'name': container_name,
         'stdin_open': True,
         'tty': True,
+        'command': ["tail", "-f", "/dev/null"],  # Keep container running
     }
     if devices:
         run_kwargs['devices'] = devices
