@@ -11,4 +11,6 @@ COPY python.manifest.template .
 # The manifest and signing steps are typically done outside the container
 # So we don't need to include Gramine or do the signing here
 
+EXPOSE 8000
+
 CMD ["python", "/validate.py"]
