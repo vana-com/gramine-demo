@@ -1,8 +1,6 @@
 sgx.enclave_size = "512M"
 sgx.max_threads = 1
 
-loader.preload = file:/gramine/meson_build_output/lib/x86_64-linux-gnu/gramine/libsysdb.so
-
 fs.mounts = [
     { type = "encrypted", path = "/sealed", uri = "file:/sealed", key_name = "_sgx_mrenclave" }
 ]
