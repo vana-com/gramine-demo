@@ -1,2 +1,3 @@
 sgx.enclave_size = "512M"
-sgx.max_threads = 1
+sgx.max_threads = 2
+
