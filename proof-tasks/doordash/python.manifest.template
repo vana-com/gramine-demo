@@ -4,3 +4,7 @@ sgx.max_threads = 4
 fs.mounts = [
     { type = "encrypted", path = "/sealed", uri = "file:/sealed", key_name = "_sgx_mrenclave" }
 ]
+
+sgx.allowed_files = [
+    "file:/dev/attestation/report",
+]

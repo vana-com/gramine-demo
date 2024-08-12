@@ -28,6 +28,16 @@ def unseal_data():
     except FileNotFoundError:
         return None
 
+def get_attestation_report():
+    try:
+        with open('/dev/attestation/report', 'rb') as f:
+            report = f.read()
+        logger.info('Fetched attestation report successfully')
+        return report.hex()  # Return report in hexadecimal format
+    except Exception as e:
+        logger.error(f'Failed to fetch attestation report: {e}')
+        return None
+
 class ValidatorHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         logger.info(f"Received POST request from {self.client_address}")
@@ -47,14 +57,23 @@ class ValidatorHandler(BaseHTTPRequestHandler):
         logger.info(f"Processed validation request. Result: {result}")
 
     def do_GET(self):
-        logger.info(f"Received GET request from {self.client_address}")
-        sealed_data = unseal_data()
+        if self.path == '/attestation':
+            logger.info(f"Received GET request for attestation from {self.client_address}")
+            attestation_report = get_attestation_report()
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"attestation": attestation_report}).encode('utf-8'))
+            logger.info("Sent attestation report")
+        else:
+            logger.info(f"Received GET request from {self.client_address}")
+            sealed_data = unseal_data()
 
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        self.wfile.write(json.dumps(sealed_data).encode('utf-8'))
-        logger.info("Returned sealed data")
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(sealed_data).encode('utf-8'))
+            logger.info("Returned sealed data")
 
 def run_server():
     server_address = ('0.0.0.0', 8000)
