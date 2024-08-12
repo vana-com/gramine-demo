@@ -52,7 +52,7 @@ def get_or_create_validator(validator_type):
 
     # Prepare SGX-specific configurations
     devices = ['/dev/sgx_enclave:/dev/sgx_enclave'] if sgx_enabled else None
-    volumes = {'/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'}, '/mnt/sealed': {'bind': '/sealed', 'mode': 'rw'}} if sgx_enabled else None
+    volumes = {'/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'}, f'/mnt/sealed/{container_name}': {'bind': '/sealed', 'mode': 'rw'}} if sgx_enabled else None
     environment = {'SGX_AESM_ADDR': '1'} if sgx_enabled else None
 
     # Remove None values to avoid empty specs
