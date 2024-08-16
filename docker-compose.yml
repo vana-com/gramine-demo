@@ -17,6 +17,7 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - SGX=${SGX:-false}
       - SGX_AESM_ADDR=${SGX_AESM_ADDR:-${SGX:+1}0}
+      - IAS_API_KEY=${IAS_API_KEY:-}
     logging:
       driver: "json-file"
       options:

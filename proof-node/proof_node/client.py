@@ -28,10 +28,10 @@ active_validators = {}
 def get_or_create_validator(validator_type):
     sgx_enabled = os.environ.get('SGX') == 'true'
     container_name = f'gsc-{validator_type}-proof' if sgx_enabled else f'{validator_type}-proof'
-    
+
     # Check if a container with the given name already exists
     existing_containers = client.containers.list(all=True, filters={'name': container_name})
-    
+
     if existing_containers:
         container = existing_containers[0]
         if container.status != 'running':
@@ -39,7 +39,7 @@ def get_or_create_validator(validator_type):
         logger.info(f"Reusing existing validator: {container_name}")
         active_validators[validator_type] = container
         return container
-    
+
     if len(active_validators) >= MAX_VALIDATORS:
         oldest_type = min(active_validators, key=lambda k: active_validators[k].attrs['Created'])
         oldest_validator = active_validators.pop(oldest_type)
@@ -53,7 +53,14 @@ def get_or_create_validator(validator_type):
     # Prepare SGX-specific configurations
     devices = ['/dev/sgx_enclave:/dev/sgx_enclave'] if sgx_enabled else None
     volumes = {'/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'}, f'/mnt/sealed/{container_name}': {'bind': '/sealed', 'mode': 'rw'}} if sgx_enabled else None
-    environment = {'SGX_AESM_ADDR': '1'} if sgx_enabled else None
+
+    # Include IAS_API_KEY in the environment variables
+    environment = {'SGX_AESM_ADDR': '1'} if sgx_enabled else {}
+    ias_api_key = os.environ.get('IAS_API_KEY')
+    if ias_api_key:
+        environment['IAS_API_KEY'] = ias_api_key
+    else:
+        logger.warning("IAS_API_KEY not set in the environment")
 
     # Remove None values to avoid empty specs
     run_kwargs = {
@@ -62,16 +69,15 @@ def get_or_create_validator(validator_type):
         'name': container_name,
         'ports': {'8000/tcp': host_port},  # Map container port 8000 to a specific host port
         'command': ["python", "/validate.py"],
+        'environment': environment,
     }
     if devices:
         run_kwargs['devices'] = devices
     if volumes:
         run_kwargs['volumes'] = volumes
-    if environment:
-        run_kwargs['environment'] = environment
 
     validator = client.containers.run(**run_kwargs)
-    
+
     # Check if the container is running
     validator.reload()
     logger.info(f"Created new validator: {validator_type} on host port {host_port}. Status: {validator.status}")
@@ -103,12 +109,12 @@ def get_or_create_validator(validator_type):
 def process_task(task):
     validator_type = task['validator_type']
     data = task['data']
-    
+
     validator = get_or_create_validator(validator_type)
     if not validator:
         logger.error(f"Failed to get or create validator for {validator_type}")
         return False
-    
+
     logger.info(f"Starting task for {validator_type}: {data}")
 
     try:

@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # Install any Python dependencies your application needs
-RUN pip install --no-cache-dir requests
+RUN pip install --no-cache-dir requests cryptography
 
 # Copy your application files
 COPY validate.py .
