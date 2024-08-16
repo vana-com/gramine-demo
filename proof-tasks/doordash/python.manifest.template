@@ -8,3 +8,5 @@ fs.mounts = [
 sgx.allowed_files = [
     "file:/dev/attestation/report",
 ]
+
+loader.env.IAS_API_KEY = { passthrough = true }

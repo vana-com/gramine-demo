@@ -55,7 +55,13 @@ def verify_with_ias(quote):
         "Ocp-Apim-Subscription-Key": IAS_API_KEY,
         "Content-Type": "application/json",
     }
-    data = {"isvEnclaveQuote": base64.b64encode(quote).decode()}
+    try:
+        # Convert hexadecimal string to bytes, then encode to base64
+        quote_bytes = bytes.fromhex(quote)
+        data = {"isvEnclaveQuote": base64.b64encode(quote_bytes).decode()}
+    except ValueError as e:
+        logger.error(f"Failed to convert quote to bytes: {e}")
+        return None
 
     response = requests.post(IAS_URL, headers=headers, json=data)
 
