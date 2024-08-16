@@ -8,6 +8,10 @@ import base64
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Add this near the top of the file, after the logger setup
+IAS_API_KEY = os.environ.get('IAS_API_KEY')
+logger.info(f"IAS_API_KEY at startup: {IAS_API_KEY}")
+
 SEALED_FILE_PATH = "/sealed/sealed_data.txt"
 
 def get_random_number():
@@ -39,10 +43,10 @@ def get_attestation_report():
         logger.error(f'Failed to fetch attestation report: {e}')
         return None
 
-IAS_API_KEY = os.environ.get('IAS_API_KEY')
 IAS_URL = "https://api.trustedservices.intel.com/sgx/dev/attestation/v4/report"
 
 def verify_with_ias(quote):
+    print(f"IAS_API_KEY at verify_with_ias: {IAS_API_KEY}")
     if not IAS_API_KEY:
         logger.error("IAS_API_KEY environment variable not set")
         return None
@@ -249,6 +253,7 @@ def run_server():
 
 if __name__ == "__main__":
     logger.info("Starting validator server...")
+    logger.info(f"IAS_API_KEY before server start: {IAS_API_KEY}")
     os.makedirs("/sealed", exist_ok=True)
 
     try:
