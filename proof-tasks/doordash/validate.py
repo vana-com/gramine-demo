@@ -46,7 +46,7 @@ def get_attestation_report():
 IAS_URL = "https://api.trustedservices.intel.com/sgx/dev/attestation/v4/report"
 
 def verify_with_ias(quote):
-    print(f"IAS_API_KEY at verify_with_ias: {IAS_API_KEY}")
+    logger.info(f"IAS_API_KEY at verify_with_ias: {IAS_API_KEY}")
     if not IAS_API_KEY:
         logger.error("IAS_API_KEY environment variable not set")
         return None
@@ -56,19 +56,26 @@ def verify_with_ias(quote):
         "Content-Type": "application/json",
     }
     try:
-        # Convert hexadecimal string to bytes, then encode to base64
         quote_bytes = bytes.fromhex(quote)
         data = {"isvEnclaveQuote": base64.b64encode(quote_bytes).decode()}
+        logger.info(f"Sending request to IAS with data: {data}")
     except ValueError as e:
         logger.error(f"Failed to convert quote to bytes: {e}")
         return None
 
-    response = requests.post(IAS_URL, headers=headers, json=data)
+    try:
+        response = requests.post(IAS_URL, headers=headers, json=data)
+        logger.info(f"IAS response status code: {response.status_code}")
+        logger.info(f"IAS response headers: {response.headers}")
+        logger.info(f"IAS response content: {response.text}")
 
-    if response.status_code == 200:
-        return response
-    else:
-        logger.error(f"IAS verification failed: {response.text}")
+        if response.status_code == 200:
+            return response
+        else:
+            logger.error(f"IAS verification failed: {response.text}")
+            return None
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request to IAS failed: {e}")
         return None
 
 # The following imports and constants are typically part of the client code
