@@ -2,16 +2,21 @@ services:
   proof-node:
     build:
       context: ./proof-node
-    image: proof_node
-    container_name: proof_node
+      args:
+        - BUILD_TYPE=${SGX_ENABLED:-false}
+    image: ${SGX_ENABLED:+sgx_}proof_node
+    container_name: ${SGX_ENABLED:+sgx_}proof_node
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /var/run/aesmd:/var/run/aesmd
+      - ${SGX_DEVICE:-/dev/null}:/dev/sgx_enclave
+      - ${AESMD_SOCKET:-/dev/null}:/var/run/aesmd
     devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
+      - ${SGX_DEVICE:-/dev/null}:/dev/sgx
     environment:
+      - MAX_VALIDATORS=3
       - DOCKER_HOST=unix:///var/run/docker.sock
-    privileged: true  # This might be necessary for SGX operations
+      - SGX_ENABLED=${SGX_ENABLED:-false}
+      - SGX_AESM_ADDR=${SGX_AESM_ADDR:-0}
     logging:
       driver: "json-file"
       options:

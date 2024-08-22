@@ -1,9 +1,10 @@
+# poetry run python test_spunup.py
 import requests
 import json
 
-url = "http://localhost:5000/spunup"
+url = "http://127.0.0.1:5000/spunup"
 payload = {
-    "image_url": "python:3.9-slim",  # Using a standard Python image for testing
+    "image_url": "volodvana/test-env-echo:latest",
     "env_vars": {
         "TEST_VAR1": "Hello",
         "TEST_VAR2": "World",
@@ -19,9 +20,3 @@ response = requests.post(url, data=json.dumps(payload), headers=headers)
 print(f"Status Code: {response.status_code}")
 print("Response:")
 print(json.dumps(response.json(), indent=2))
-
-if response.status_code == 200:
-    print("\nEnvironment Variables:")
-    for line in response.json()['result'].split('\n'):
-        print(line)
-    print(f"\nExit Code: {response.json()['exit_code']}")

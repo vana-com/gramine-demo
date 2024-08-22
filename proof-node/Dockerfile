@@ -1,4 +1,5 @@
-FROM ubuntu:22.04
+# Base stage
+FROM ubuntu:22.04 AS base
 
 WORKDIR /app
 
@@ -15,42 +16,44 @@ RUN apt-get update && apt-get install -y software-properties-common && \
 # Set Python 3.12 as the default python3
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-# Install pip for Python 3.12
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
-    python3.12 get-pip.py && \
-    rm get-pip.py
-
-# Install setuptools and wheel (required for some packages)
-RUN pip3 install --no-cache-dir setuptools wheel
-
-# Install Poetry using pip
-RUN pip3 install --no-cache-dir poetry==1.7.1
+# Install Poetry using the official installation script
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
 # Add Poetry to PATH
 ENV PATH="/root/.local/bin:$PATH"
-
-# Install Gramine and SGX dependencies
-RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramineproject.io/gramine-keyring.gpg && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/gramine-keyring.gpg] https://packages.gramineproject.io/ $(lsb_release -sc) main" \
-    | tee /etc/apt/sources.list.d/gramine.list && \
-    curl -fsSLo /usr/share/keyrings/intel-sgx-deb.asc https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intel-sgx-deb.asc] https://download.01.org/intel-sgx/sgx_repo/ubuntu $(lsb_release -sc) main" \
-    | tee /etc/apt/sources.list.d/intel-sgx.list && \
-    apt-get update && \
-    apt-get install -y gramine libsgx-launch libsgx-urts libsgx-quote-ex
 
 # Copy only requirements to cache them in docker layer
 COPY pyproject.toml poetry.lock* /app/
 
 # Project initialization:
-RUN poetry config virtualenvs.create false && \
-    pip uninstall -y blinker markupsafe click jinja2 && \
-    rm -rf /usr/local/lib/python3.12/dist-packages/blinker* && \
-    rm -rf /usr/local/lib/python3.12/dist-packages/markupsafe* && \
-    rm -rf /usr/local/lib/python3.12/dist-packages/click* && \
-    rm -rf /usr/local/lib/python3.12/dist-packages/jinja2* && \
-    poetry install --no-interaction --no-ansi
+RUN poetry config virtualenvs.create false \
+  && poetry install --no-interaction --no-ansi
 
 COPY . /app
 
+# Make sure entrypoint.sh is executable
+RUN chmod +x /app/entrypoint.sh
+
+# Non-SGX stage
+FROM base AS non-sgx
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["poetry", "run", "python3", "-m", "proof_node"]
+
+# SGX stage
+FROM base AS sgx
+
+# Add Gramine and Intel SGX repositories
+RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramineproject.io/gramine-keyring.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/gramine-keyring.gpg] https://packages.gramineproject.io/ $(lsb_release -sc) main" \
+    | tee /etc/apt/sources.list.d/gramine.list && \
+    curl -fsSLo /usr/share/keyrings/intel-sgx-deb.asc https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intel-sgx-deb.asc] https://download.01.org/intel-sgx/sgx_repo/ubuntu $(lsb_release -sc) main" \
+    | tee /etc/apt/sources.list.d/intel-sgx.list
+
+# Install Gramine and SGX dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gramine libsgx-launch libsgx-urts libsgx-quote-ex
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["poetry", "run", "python3", "-m", "proof_node"]
