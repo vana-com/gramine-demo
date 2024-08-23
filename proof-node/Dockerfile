@@ -43,8 +43,9 @@ RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramine
 COPY pyproject.toml poetry.lock* /app/
 
 # Project initialization:
-RUN poetry config virtualenvs.create false \
-  && poetry install --no-interaction --no-ansi
+RUN poetry config virtualenvs.create false && \
+    pip uninstall -y blinker markupsafe click jinja2 && \
+    poetry install --no-interaction --no-ansi
 
 COPY . /app
 
