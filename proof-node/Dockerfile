@@ -21,10 +21,10 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     rm get-pip.py
 
 # Install setuptools and wheel (required for some packages)
-RUN pip3 install setuptools wheel
+RUN pip3 install --no-cache-dir setuptools wheel
 
 # Install Poetry using pip
-RUN pip3 install poetry==1.7.1
+RUN pip3 install --no-cache-dir poetry==1.7.1
 
 # Add Poetry to PATH
 ENV PATH="/root/.local/bin:$PATH"
@@ -45,6 +45,10 @@ COPY pyproject.toml poetry.lock* /app/
 # Project initialization:
 RUN poetry config virtualenvs.create false && \
     pip uninstall -y blinker markupsafe click jinja2 && \
+    rm -rf /usr/local/lib/python3.12/dist-packages/blinker* && \
+    rm -rf /usr/local/lib/python3.12/dist-packages/markupsafe* && \
+    rm -rf /usr/local/lib/python3.12/dist-packages/click* && \
+    rm -rf /usr/local/lib/python3.12/dist-packages/jinja2* && \
     poetry install --no-interaction --no-ansi
 
 COPY . /app
