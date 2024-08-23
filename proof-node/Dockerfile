@@ -15,8 +15,16 @@ RUN apt-get update && apt-get install -y software-properties-common && \
 # Set Python 3.12 as the default python3
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-# Install Poetry using the official installation script
-RUN curl -sSL https://install.python-poetry.org | python3 -
+# Install pip for Python 3.12
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.12 get-pip.py && \
+    rm get-pip.py
+
+# Install setuptools and wheel (required for some packages)
+RUN pip3 install setuptools wheel
+
+# Install Poetry using pip
+RUN pip3 install poetry==1.7.1
 
 # Add Poetry to PATH
 ENV PATH="/root/.local/bin:$PATH"
