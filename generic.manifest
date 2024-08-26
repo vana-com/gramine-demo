@@ -1,0 +1,27 @@
+# Generic manifest for GSC
+
+loader.entrypoint = "file:{{ gramine.libos }}"
+libos.entrypoint = "/bin/sh"
+
+fs.mounts = [
+  { path = "/lib", uri = "file:/lib" },
+  { path = "/lib64", uri = "file:/lib64" },
+  { path = "/usr", uri = "file:/usr" },
+  { path = "/bin", uri = "file:/bin" },
+  { path = "/etc", uri = "file:/etc" },
+]
+
+sys.stack.size = "8M"
+sys.enable_extra_runtime_domain_names_conf = true
+
+sgx.debug = true
+sgx.nonpie_binary = true
+sgx.enclave_size = "256M"
+
+sgx.trusted_files = [
+  "file:{{ gramine.libos }}",
+  "file:/bin/sh",
+  "file:/lib/",
+  "file:/lib64/",
+  "file:/usr/lib/",
+]

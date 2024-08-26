@@ -19,7 +19,7 @@ def build_gsc_image(image_url):
         docker_client.images.pull(image_url)
 
         # Build the GSC image
-        subprocess.run(["gsc", "build", image_url, "-c", "/app/config.yaml"], check=True)
+        subprocess.run(["gsc", "build", image_url, "/app/generic.manifest", "-c", "/app/config.yaml"], check=True)
 
         # The GSC image name is prefixed with 'gsc-'
         gsc_image_name = f"gsc-{image_url}"
