@@ -1,15 +1,26 @@
-version: '3.8'
-
 services:
   proof-node:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ./proof-node
+      args:
+        - BUILD_TYPE=${SGX_ENABLED:-false}
     ports:
       - "5000:5000"
+    image: ${SGX_ENABLED:+sgx_}proof_node
+    container_name: ${SGX_ENABLED:+sgx_}proof_node
     volumes:
-      - /var/run/aesmd:/var/run/aesmd
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${SGX_DEVICE:-/dev/null}:/dev/sgx_enclave
+      - ${AESMD_SOCKET:-/dev/null}:/var/run/aesmd
     devices:
-      - /dev/sgx_enclave
+      - ${SGX_DEVICE:-/dev/null}:/dev/sgx
     environment:
-      - SGX_ENABLED=true
+      - MAX_VALIDATORS=3
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - SGX_ENABLED=${SGX_ENABLED:-false}
+      - SGX_AESM_ADDR=${SGX_AESM_ADDR:-0}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
