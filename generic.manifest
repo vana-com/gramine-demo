@@ -1,14 +1,16 @@
-# Generic manifest for GSC
+# Generic manifest for GSC (Ubuntu-based)
 
 loader.entrypoint = "file:{{ gramine.libos }}"
-libos.entrypoint = "/bin/sh"
+libos.entrypoint = "/bin/bash"
 
 fs.mounts = [
+  { path = "/", uri = "file:/" },
   { path = "/lib", uri = "file:/lib" },
   { path = "/lib64", uri = "file:/lib64" },
   { path = "/usr", uri = "file:/usr" },
   { path = "/bin", uri = "file:/bin" },
   { path = "/etc", uri = "file:/etc" },
+  { path = "/tmp", uri = "file:/tmp" },
 ]
 
 sys.stack.size = "8M"
@@ -20,8 +22,14 @@ sgx.enclave_size = "256M"
 
 sgx.trusted_files = [
   "file:{{ gramine.libos }}",
-  "file:/bin/sh",
+  "file:/bin/bash",
   "file:/lib/",
   "file:/lib64/",
   "file:/usr/lib/",
 ]
+
+# Allow writing to stdout/stderr
+fs.allow_readonly_device_fstat = true
+
+# Enable CPUID instruction
+sgx.insecure__allow_cpuid_insecure = true
