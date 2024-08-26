@@ -36,13 +36,7 @@ RUN . /app/venv/bin/activate && \
     poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi
 
-# Copy the print_env.py script
-COPY print_env.py /app/print_env.py
-
 COPY . /app
-
-# Make sure entrypoint.sh is executable
-RUN chmod +x /app/entrypoint.sh
 
 # Install Gramine and SGX dependencies
 RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramineproject.io/gramine-keyring.gpg && \
@@ -55,5 +49,11 @@ RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramine
     libsgx-launch libsgx-urts libsgx-quote-ex \
     libsgx-epid libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
-ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["/app/venv/bin/python", "-m", "proof_node"]
+# Install Docker CLI
+RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli
+
+CMD ["python", "-m", "proof_node"]

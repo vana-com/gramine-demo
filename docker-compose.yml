@@ -2,21 +2,22 @@ version: '3.8'
 
 services:
   flask-server:
-    build:
-      context: .
-      dockerfile: Dockerfile.server
+    build: .
     ports:
       - "5000:5000"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - /var/run/aesmd:/var/run/aesmd
+      - /var/run/docker.sock:/var/run/docker.sock
     devices:
       - /dev/sgx_enclave
     environment:
-      - SGX_AESM_ADDR=1
+      - SGX_ENABLED=true
+    command: python -m proof_node
 
-  env-printer:
-    build:
-      context: .
-      dockerfile: Dockerfile.env-printer
-    image: env-printer:latest
+  aesmd:
+    image: intel/aesmd
+    devices:
+      - /dev/sgx_enclave
+      - /dev/sgx_provision
+    volumes:
+      - /var/run/aesmd:/var/run/aesmd

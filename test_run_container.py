@@ -1,10 +1,9 @@
-# poetry run python test_spunup.py
 import requests
 import json
 
-url = "http://127.0.0.1:5000/run"
+url = "http://localhost:5000/run"
 payload = {
-    "image_url": "your-image-name:latest",  # Replace with your actual image name
+    "image_url": "alpine:latest",
     "env_vars": {
         "TEST_VAR1": "Hello",
         "TEST_VAR2": "World",

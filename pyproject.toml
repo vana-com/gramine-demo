@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "proof-node"
 version = "0.1.0"
-description = "Node for securely running proof tasks"
-authors = ["Vana <services@vana.com>"]
+description = "Node for securely running proof tasks in Gramine-SGX"
+authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = "3.12.*"
-docker = "^7.1.0"
 flask = "^3.0.0"
+docker = "^7.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.2"
