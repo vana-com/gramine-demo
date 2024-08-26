@@ -85,4 +85,4 @@ def main():
 
 if __name__ == "__main__":
     logging.info("Starting main")
-    main()
+    app.run(host='0.0.0.0', port=5000)

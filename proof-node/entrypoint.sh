@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Activate the virtual environment
+. /app/venv/bin/activate
+
 # Forward SIGTERM to the Python process
 trap 'kill -TERM $PID' TERM INT
 

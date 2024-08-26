@@ -16,8 +16,11 @@ RUN apt-get update && apt-get install -y software-properties-common && \
 # Set Python 3.12 as the default python3
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
+# Install pip for Python 3.12
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
+
 # Install Poetry using the official installation script
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN curl -sSL https://install.python-poetry.org | python3.12 -
 
 # Add Poetry to PATH
 ENV PATH="/root/.local/bin:$PATH"
@@ -25,9 +28,13 @@ ENV PATH="/root/.local/bin:$PATH"
 # Copy only requirements to cache them in docker layer
 COPY pyproject.toml poetry.lock* /app/
 
-# Project initialization:
-RUN poetry config virtualenvs.create false \
-  && poetry install --no-interaction --no-ansi
+# Create a virtual environment and install dependencies
+RUN python3.12 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+RUN . /app/venv/bin/activate && \
+    pip install --upgrade pip && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi
 
 COPY . /app
 
@@ -38,7 +45,7 @@ RUN chmod +x /app/entrypoint.sh
 FROM base AS non-sgx
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["poetry", "run", "python3", "-m", "proof_node"]
+CMD ["/app/venv/bin/python", "-m", "proof_node"]
 
 # SGX stage
 FROM base AS sgx
@@ -56,4 +63,4 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends gramine libsgx-launch libsgx-urts libsgx-quote-ex
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["poetry", "run", "python3", "-m", "proof_node"]
+CMD ["/app/venv/bin/python", "-m", "proof_node"]

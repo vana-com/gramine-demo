@@ -5,7 +5,7 @@ description = "Node for securely running proof tasks"
 authors = ["Vana <services@vana.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "3.12.*"
 docker = "^7.1.0"
 flask = "^3.0.0"
 
