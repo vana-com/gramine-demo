@@ -36,6 +36,9 @@ RUN . /app/venv/bin/activate && \
     poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi
 
+# Copy the print_env.py script
+COPY print_env.py /app/print_env.py
+
 COPY . /app
 
 # Make sure entrypoint.sh is executable

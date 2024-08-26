@@ -2,9 +2,9 @@
 import requests
 import json
 
-url = "http://127.0.0.1:5000/spunup"
+url = "http://127.0.0.1:5000/run"
 payload = {
-    "image_url": "volodvana/test-env-echo:latest",
+    "image_url": "your-image-name:latest",  # Replace with your actual image name
     "env_vars": {
         "TEST_VAR1": "Hello",
         "TEST_VAR2": "World",
