@@ -70,4 +70,10 @@ RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-releas
 # Set PYTHONPATH to include the app directory
 ENV PYTHONPATH=/app:$PYTHONPATH
 
+# Debug: Print directory contents and Python path
+RUN echo "Contents of /app:" && ls -R /app && \
+    echo "PYTHONPATH: $PYTHONPATH" && \
+    echo "Python version:" && python --version && \
+    echo "Pip list:" && pip list
+
 CMD ["/app/venv/bin/python", "-m", "proof_node"]
