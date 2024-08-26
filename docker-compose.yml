@@ -11,5 +11,6 @@ services:
       - /dev/sgx_provision
     environment:
       - SGX_ENABLED=true
+      - LD_LIBRARY_PATH=/opt/intel/sgxsdk/lib64:/opt/intel/sgxsdk/lib64/gdb:/opt/intel/sgx-aesm-service/aesm
     privileged: true
-    command: sh -c "/opt/intel/sgx-aesm-service/aesm/aesm_service --no-daemon & python -m proof_node"
+    command: sh -c "/opt/intel/sgx-aesm-service/aesm/aesm_service --no-daemon & /app/venv/bin/python -m proof_node"

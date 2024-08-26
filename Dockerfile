@@ -11,7 +11,7 @@ ENV TZ=Etc/UTC
 RUN apt-get update && apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip curl lsb-release gnupg
+    apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip curl lsb-release gnupg wget
 
 # Set Python 3.12 as the default python3
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
@@ -49,8 +49,16 @@ RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramine
     libsgx-launch libsgx-urts libsgx-quote-ex \
     libsgx-epid libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
-# Install AESMD service
-RUN apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-aesm-launch-plugin
+# Install AESMD service and SGX SDK
+RUN apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-aesm-launch-plugin libsgx-aesm-quote-ex-plugin
+RUN wget https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.15.101.1.bin && \
+    chmod +x sgx_linux_x64_sdk_2.15.101.1.bin && \
+    echo -e 'no\n/opt/intel\n' | ./sgx_linux_x64_sdk_2.15.101.1.bin && \
+    rm sgx_linux_x64_sdk_2.15.101.1.bin
+
+# Set up environment for SGX
+ENV LD_LIBRARY_PATH=/opt/intel/sgxsdk/lib64:/opt/intel/sgxsdk/lib64/gdb:$LD_LIBRARY_PATH
+ENV PATH=/opt/intel/sgxsdk/bin:$PATH
 
 # Install Docker CLI
 RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release && \
@@ -59,4 +67,7 @@ RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-releas
     apt-get update && \
     apt-get install -y docker-ce-cli
 
-CMD ["python", "-m", "proof_node"]
+# Set PYTHONPATH to include the app directory
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+CMD ["/app/venv/bin/python", "-m", "proof_node"]
