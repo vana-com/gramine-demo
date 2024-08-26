@@ -49,6 +49,9 @@ RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramine
     libsgx-launch libsgx-urts libsgx-quote-ex \
     libsgx-epid libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
+# Install AESMD service
+RUN apt-get install -y libsgx-enclave-common libsgx-aesm-launch-plugin
+
 # Install Docker CLI
 RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \

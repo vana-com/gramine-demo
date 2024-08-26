@@ -10,14 +10,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     devices:
       - /dev/sgx_enclave
+      - /dev/sgx_provision
     environment:
       - SGX_ENABLED=true
-    command: python -m proof_node
-
-  aesmd:
-    image: intel/aesmd
-    devices:
-      - /dev/sgx_enclave
-      - /dev/sgx_provision
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
+    privileged: true
+    command: sh -c "service aesmd start && python -m proof_node"
