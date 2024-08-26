@@ -4,6 +4,8 @@ services:
       context: ./proof-node
       args:
         - BUILD_TYPE=${SGX_ENABLED:-false}
+    ports:
+      - "5000:5000"
     image: ${SGX_ENABLED:+sgx_}proof_node
     container_name: ${SGX_ENABLED:+sgx_}proof_node
     volumes:
