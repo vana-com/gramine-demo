@@ -1,10 +1,6 @@
-import random
-import time
 import logging
 from flask import Flask, request, jsonify
 import docker
-
-from .client import process_task
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -29,59 +25,22 @@ def spunup():
         container = docker_client.containers.run(
             image_url,
             environment=env_vars,
+            command=["python", "-c", env_vars.get('PYTHON_SCRIPT', 'print("No script provided")')],
             detach=True,
-            remove=False  # Changed to False to prevent automatic container removal to read from logs
+            remove=True
         )
 
-        # Wait for the container to finish
-        result = container.wait()
+        # Wait for the container to finish and get logs
+        logs = container.logs(stream=True)
+        result = "".join([log.decode() for log in logs])
 
-        # Get the container logs
-        logs = container.logs().decode('utf-8')
-
-        # Remove the container
-        container.remove()
-
-        return jsonify({"result": logs, "exit_code": result['StatusCode']})
+        return jsonify({"result": result, "exit_code": container.wait()['StatusCode']})
     except docker.errors.DockerException as e:
         logger.error(f"Docker error: {str(e)}")
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return jsonify({"error": "An unexpected error occurred"}), 500
-
-def main():
-    logging.info("Starting client")
-
-    while True:
-        task = random.choice([
-            {
-                "validator_type": "doordash",
-                "data": {
-                    "id": str(random.randint(1, 1000)),
-                    "name": f"User {random.randint(1, 100)}",
-                    "email": f"user{random.randint(1, 100)}@example.com",
-                    "phone": f"{random.randint(1000000000, 9999999999)}"
-                }
-            },
-            {
-                "validator_type": "analytics",
-                "data": {
-                    "duration": random.randint(30, 300),
-                    "pages": [f"page_{random.randint(1, 10)}" for _ in range(random.randint(1, 10))] +
-                             random.choice([["cart"], ["checkout"], ["buy"], []])
-                }
-            }
-        ])
-
-        if task["validator_type"] == "doordash" and random.random() < 0.2:
-            task["data"].pop("phone", None)
-
-        logging.info(f"Generated task: {task}")
-        process_task(task)
-
-        time.sleep(random.uniform(1, 5))
-
 
 if __name__ == "__main__":
     logging.info("Starting main")
