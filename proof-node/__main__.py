@@ -13,23 +13,56 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 docker_client = docker.from_env()
 
+def get_distro_from_image(image_url):
+    # This is a simplified version. In a real-world scenario, you'd want to inspect the image more thoroughly.
+    if 'ubuntu' in image_url:
+        return 'ubuntu'
+    elif 'debian' in image_url:
+        return 'debian'
+    elif 'centos' in image_url or 'rhel' in image_url:
+        return 'redhat'
+    else:
+        return None
+
 def build_gsc_image(image_url):
     try:
         # Pull the original image
         docker_client.images.pull(image_url)
 
+        # Check if the distribution is supported
+        distro = get_distro_from_image(image_url)
+        if not distro:
+            raise ValueError(f"Unsupported distribution for image: {image_url}")
+
         # Build the GSC image
-        subprocess.run(["gsc", "build", image_url, "/app/generic.manifest", "-c", "/app/config.yaml"], check=True)
+        result = subprocess.run(
+            ["gsc", "build", image_url, "/app/generic.manifest", "-c", "/app/config.yaml"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        logger.info(f"GSC build output: {result.stdout}")
 
         # The GSC image name is prefixed with 'gsc-'
         gsc_image_name = f"gsc-{image_url}"
 
         # Sign the GSC image
-        subprocess.run(["gsc", "sign-image", gsc_image_name, "-c", "/app/config.yaml"], check=True)
+        sign_result = subprocess.run(
+            ["gsc", "sign-image", gsc_image_name, "-c", "/app/config.yaml"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        logger.info(f"GSC sign output: {sign_result.stdout}")
 
         return gsc_image_name
     except subprocess.CalledProcessError as e:
         logger.error(f"Error building GSC image: {e}")
+        logger.error(f"Command output: {e.stdout}")
+        logger.error(f"Command error: {e.stderr}")
+        raise
+    except ValueError as e:
+        logger.error(str(e))
         raise
 
 @app.route('/run', methods=['POST'])
@@ -71,7 +104,10 @@ def run_container():
         return jsonify({"error": str(e)}), 500
     except subprocess.CalledProcessError as e:
         logger.error(f"GSC error: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"GSC error: {e.stderr}"}), 500
+    except ValueError as e:
+        logger.error(f"Unsupported distribution error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return jsonify({"error": "An unexpected error occurred"}), 500
