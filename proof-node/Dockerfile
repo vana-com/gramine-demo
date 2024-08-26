@@ -41,26 +41,16 @@ COPY . /app
 # Make sure entrypoint.sh is executable
 RUN chmod +x /app/entrypoint.sh
 
-# Non-SGX stage
-FROM base AS non-sgx
-
-ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["/app/venv/bin/python", "-m", "proof_node"]
-
-# SGX stage
-FROM base AS sgx
-
-# Add Gramine and Intel SGX repositories
-RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramineproject.io/gramine-keyring.gpg && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/gramine-keyring.gpg] https://packages.gramineproject.io/ $(lsb_release -sc) main" \
-    | tee /etc/apt/sources.list.d/gramine.list && \
-    curl -fsSLo /usr/share/keyrings/intel-sgx-deb.asc https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intel-sgx-deb.asc] https://download.01.org/intel-sgx/sgx_repo/ubuntu $(lsb_release -sc) main" \
-    | tee /etc/apt/sources.list.d/intel-sgx.list
-
 # Install Gramine and SGX dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gramine libsgx-launch libsgx-urts libsgx-quote-ex
+RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramineproject.io/gramine-keyring.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/gramine-keyring.gpg] https://packages.gramineproject.io/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/gramine.list > /dev/null && \
+    curl -fsSLo /usr/share/keyrings/intel-sgx-deb.asc https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intel-sgx-deb.asc] https://download.01.org/intel-sgx/sgx_repo/ubuntu $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/intel-sgx.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gramine \
+    libsgx-launch libsgx-urts libsgx-quote-ex \
+    libsgx-epid libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/app/venv/bin/python", "-m", "proof_node"]
