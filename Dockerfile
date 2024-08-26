@@ -75,6 +75,9 @@ RUN pip install docker jinja2 tomli tomli-w pyyaml
 # Copy the project files
 COPY . /app
 
+# Copy config.yaml
+COPY config.yaml /app/config.yaml
+
 # Set PYTHONPATH to include the app directory
 ENV PYTHONPATH=/app:$PYTHONPATH
 

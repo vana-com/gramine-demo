@@ -1,0 +1,9 @@
+Distro: "auto"
+
+Gramine:
+  Repository: "https://github.com/gramineproject/gramine.git"
+  Branch: "master"
+
+SGXDriver:
+  Repository: ""
+  Branch: ""
