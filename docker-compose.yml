@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   flask-server:
     build: .
@@ -14,4 +12,4 @@ services:
     environment:
       - SGX_ENABLED=true
     privileged: true
-    command: sh -c "service aesmd start && python -m proof_node"
+    command: sh -c "/opt/intel/sgx-aesm-service/aesm/aesm_service --no-daemon & python -m proof_node"

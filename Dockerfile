@@ -50,7 +50,7 @@ RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramine
     libsgx-epid libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
 # Install AESMD service
-RUN apt-get install -y libsgx-enclave-common libsgx-aesm-launch-plugin
+RUN apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-aesm-launch-plugin
 
 # Install Docker CLI
 RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release && \
