@@ -36,8 +36,6 @@ RUN . /app/venv/bin/activate && \
     poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi
 
-COPY . /app
-
 # Install Gramine and SGX dependencies
 RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramineproject.io/gramine-keyring.gpg && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/gramine-keyring.gpg] https://packages.gramineproject.io/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/gramine.list > /dev/null && \
@@ -67,9 +65,8 @@ RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-releas
     apt-get update && \
     apt-get install -y docker-ce-cli
 
-# Copy entrypoint script and make it executable
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+# Copy the project files
+COPY . /app
 
 # Set PYTHONPATH to include the app directory
 ENV PYTHONPATH=/app:$PYTHONPATH
@@ -79,5 +76,9 @@ RUN echo "Contents of /app:" && ls -R /app && \
     echo "PYTHONPATH: $PYTHONPATH" && \
     echo "Python version:" && python --version && \
     echo "Pip list:" && pip list
+
+# Copy entrypoint script and make it executable
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 CMD ["/bin/bash", "/app/entrypoint.sh"]

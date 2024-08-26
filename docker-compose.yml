@@ -6,7 +6,7 @@ services:
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./entrypoint.sh:/app/entrypoint.sh  # Mount the entrypoint script
+      - ./entrypoint.sh:/app/entrypoint.sh
     devices:
       - /dev/sgx_enclave
       - /dev/sgx_provision
@@ -14,5 +14,6 @@ services:
       - SGX_ENABLED=true
       - LD_LIBRARY_PATH=/opt/intel/sgxsdk/lib64:/opt/intel/sgxsdk/lib64/gdb:/opt/intel/sgx-aesm-service/aesm
       - PYTHONPATH=/app:$PYTHONPATH
+    working_dir: /app
     privileged: true
     command: ["/bin/bash", "/app/entrypoint.sh"]

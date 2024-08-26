@@ -15,13 +15,13 @@ python --version
 echo "Pip list:"
 pip list
 
-echo "Contents of proof_node directory:"
-ls -R /app/proof_node
+echo "Contents of proof-node directory:"
+ls -R /app/proof-node
 
 echo "Starting AESMD service..."
 /opt/intel/sgx-aesm-service/aesm/aesm_service --no-daemon &
 
-echo "Attempting to run proof_node module..."
-/app/venv/bin/python -m proof_node
+echo "Attempting to run proof-node module..."
+python -m proof-node
 
 echo "If you see this message, the script completed without crashing."
