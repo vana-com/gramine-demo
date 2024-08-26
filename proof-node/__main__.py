@@ -70,7 +70,7 @@ def run_container():
             container = docker_client.containers.run(
                 image_url,
                 command=[
-                    "gramine-sgx",
+                    "/usr/bin/gramine-sgx",
                     "env"
                 ],
                 volumes={

@@ -47,6 +47,9 @@ RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramine
     libsgx-launch libsgx-urts libsgx-quote-ex \
     libsgx-epid libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
+# Ensure Gramine is in PATH
+ENV PATH="/usr/local/bin:${PATH}"
+
 # Install AESMD service and SGX SDK
 RUN apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-aesm-launch-plugin libsgx-aesm-quote-ex-plugin
 RUN wget https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.15.101.1.bin && \
