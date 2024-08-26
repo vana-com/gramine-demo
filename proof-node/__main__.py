@@ -22,7 +22,14 @@ def build_gsc_image(image_url):
         # Build the GSC image
         logger.info(f"Building GSC image for: {image_url}")
         result = subprocess.run(["gsc", "build", image_url, "/app/generic.manifest", "-c", "/app/config.yaml"],
-                                check=True, capture_output=True, text=True)
+                                capture_output=True, text=True)
+
+        if result.returncode != 0:
+            logger.error(f"GSC build failed with return code {result.returncode}")
+            logger.error(f"STDOUT: {result.stdout}")
+            logger.error(f"STDERR: {result.stderr}")
+            raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
+
         logger.debug(f"GSC build output: {result.stdout}")
 
         # The GSC image name is prefixed with 'gsc-'
@@ -31,13 +38,26 @@ def build_gsc_image(image_url):
         # Sign the GSC image
         logger.info(f"Signing GSC image: {gsc_image_name}")
         result = subprocess.run(["gsc", "sign-image", gsc_image_name, "-c", "/app/config.yaml"],
-                                check=True, capture_output=True, text=True)
+                                capture_output=True, text=True)
+
+        if result.returncode != 0:
+            logger.error(f"GSC sign failed with return code {result.returncode}")
+            logger.error(f"STDOUT: {result.stdout}")
+            logger.error(f"STDERR: {result.stderr}")
+            raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
+
         logger.debug(f"GSC sign output: {result.stdout}")
 
         return gsc_image_name
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error building GSC image: {e}")
-        logger.error(f"Command output: {e.output}")
+        logger.error(f"Error in GSC command: {e}")
+        logger.error(f"Command: {e.cmd}")
+        logger.error(f"Return Code: {e.returncode}")
+        logger.error(f"STDOUT: {e.stdout}")
+        logger.error(f"STDERR: {e.stderr}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in build_gsc_image: {str(e)}")
         raise
 
 @app.route('/run', methods=['POST'])
