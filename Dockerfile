@@ -11,7 +11,7 @@ ENV TZ=Etc/UTC
 RUN apt-get update && apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip curl lsb-release gnupg wget
+    apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip curl lsb-release gnupg wget git
 
 # Set Python 3.12 as the default python3
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
@@ -47,9 +47,6 @@ RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramine
     libsgx-launch libsgx-urts libsgx-quote-ex \
     libsgx-epid libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
-# Ensure Gramine is in PATH
-ENV PATH="/usr/local/bin:${PATH}"
-
 # Install AESMD service and SGX SDK
 RUN apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-aesm-launch-plugin libsgx-aesm-quote-ex-plugin
 RUN wget https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.15.101.1.bin && \
@@ -67,6 +64,11 @@ RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-releas
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
     apt-get install -y docker-ce-cli
+
+# Install GSC
+RUN git clone https://github.com/gramineproject/gsc.git && \
+    cd gsc && \
+    python3 -m pip install .
 
 # Copy the project files
 COPY . /app
