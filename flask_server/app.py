@@ -11,7 +11,7 @@ for key, value in os.environ.items():
 
 print("Attempting to connect to Docker daemon...")
 try:
-    client = docker.from_env()
+    client = docker.DockerClient(base_url='unix://var/run/docker.sock', tls=False)
     print("Docker client created successfully")
     print(f"Docker version: {client.version()}")
 except Exception as e:
