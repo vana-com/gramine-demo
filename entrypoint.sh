@@ -1,7 +1,27 @@
-#!/bin/sh
+#!/bin/bash
 
-# Activate the virtual environment
-. /app/venv/bin/activate
+echo "Current directory:"
+pwd
 
-# Start the Flask application
-exec python -m proof_node
+echo "Directory contents:"
+ls -R
+
+echo "PYTHONPATH:"
+echo $PYTHONPATH
+
+echo "Python version:"
+python --version
+
+echo "Pip list:"
+pip list
+
+echo "Contents of proof_node directory:"
+ls -R /app/proof_node
+
+echo "Starting AESMD service..."
+/opt/intel/sgx-aesm-service/aesm/aesm_service --no-daemon &
+
+echo "Attempting to run proof_node module..."
+/app/venv/bin/python -m proof_node
+
+echo "If you see this message, the script completed without crashing."

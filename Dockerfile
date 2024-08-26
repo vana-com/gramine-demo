@@ -67,6 +67,10 @@ RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-releas
     apt-get update && \
     apt-get install -y docker-ce-cli
 
+# Copy entrypoint script and make it executable
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Set PYTHONPATH to include the app directory
 ENV PYTHONPATH=/app:$PYTHONPATH
 
@@ -76,4 +80,4 @@ RUN echo "Contents of /app:" && ls -R /app && \
     echo "Python version:" && python --version && \
     echo "Pip list:" && pip list
 
-CMD ["/app/venv/bin/python", "-m", "proof_node"]
+CMD ["/bin/bash", "/app/entrypoint.sh"]
