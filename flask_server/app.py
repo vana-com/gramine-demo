@@ -3,7 +3,20 @@ import docker
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
-client = docker.from_env()
+
+print("Docker environment variables:")
+for key, value in os.environ.items():
+    if 'DOCKER' in key:
+        print(f"{key}: {value}")
+
+print("Attempting to connect to Docker daemon...")
+try:
+    client = docker.from_env()
+    print("Docker client created successfully")
+    print(f"Docker version: {client.version()}")
+except Exception as e:
+    print(f"Error creating Docker client: {str(e)}")
+    raise
 
 @app.route('/run_container', methods=['POST'])
 def run_container():
