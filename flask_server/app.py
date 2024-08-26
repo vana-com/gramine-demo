@@ -1,6 +1,5 @@
 import os
 import docker
-from docker import APIClient
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -12,7 +11,7 @@ for key, value in os.environ.items():
 
 print("Attempting to connect to Docker daemon...")
 try:
-    client = APIClient(base_url='unix://var/run/docker.sock')
+    client = docker.from_env()
     print("Docker client created successfully")
     print(f"Docker version: {client.version()}")
 except Exception as e:
@@ -27,34 +26,26 @@ def run_container():
 
     try:
         # Pull the image if it's not already present
-        client.pull(image_url)
+        client.images.pull(image_url)
 
         # Run the container with Gramine
-        container = client.create_container(
-            image=image_url,
+        container = client.containers.run(
+            image_url,
             environment=env_vars,
+            detach=True,
+            remove=True,
             runtime='rune',
             devices=['/dev/sgx/enclave:/dev/sgx/enclave'],
-            volumes=['/var/run/aesmd'],
-            host_config=client.create_host_config(
-                runtime='rune',
-                devices=['/dev/sgx/enclave:/dev/sgx/enclave'],
-                binds={'/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'ro'}}
-            )
+            volumes={'/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'ro'}}
         )
-        container_id = container['Id']
-        client.start(container_id)
 
         # Wait for the container to finish and get the logs
-        exit_code = client.wait(container_id)
-        logs = client.logs(container_id).decode('utf-8')
-
-        # Remove the container
-        client.remove_container(container_id)
+        result = container.wait()
+        logs = container.logs().decode('utf-8')
 
         return jsonify({
             'status': 'success',
-            'exit_code': exit_code,
+            'exit_code': result['StatusCode'],
             'output': logs
         })
 
