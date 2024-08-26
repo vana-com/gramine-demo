@@ -1,5 +1,5 @@
-# Base stage
-FROM ubuntu:22.04 AS base
+# Use Ubuntu 22.04 as the base image
+FROM ubuntu:22.04
 
 WORKDIR /app
 
@@ -7,20 +7,19 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
-# Install necessary tools and Python 3.12
-RUN apt-get update && apt-get install -y software-properties-common && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip curl lsb-release gnupg wget git
-
-# Set Python 3.12 as the default python3
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
-
-# Install pip for Python 3.12
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
+# Update and install necessary packages
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    curl \
+    gnupg \
+    lsb-release \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry using the official installation script
-RUN curl -sSL https://install.python-poetry.org | python3.12 -
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
 # Add Poetry to PATH
 ENV PATH="/root/.local/bin:$PATH"
@@ -29,7 +28,7 @@ ENV PATH="/root/.local/bin:$PATH"
 COPY pyproject.toml poetry.lock* /app/
 
 # Create a virtual environment and install dependencies
-RUN python3.12 -m venv /app/venv
+RUN python3 -m venv /app/venv
 ENV PATH="/app/venv/bin:$PATH"
 RUN . /app/venv/bin/activate && \
     pip install --upgrade pip && \
@@ -47,20 +46,8 @@ RUN curl -fsSLo /usr/share/keyrings/gramine-keyring.gpg https://packages.gramine
     libsgx-launch libsgx-urts libsgx-quote-ex \
     libsgx-epid libsgx-urts libsgx-quote-ex libsgx-dcap-ql
 
-# Install AESMD service and SGX SDK
-RUN apt-get install -y libsgx-enclave-common sgx-aesm-service libsgx-aesm-launch-plugin libsgx-aesm-quote-ex-plugin
-RUN wget https://download.01.org/intel-sgx/sgx-linux/2.15.1/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.15.101.1.bin && \
-    chmod +x sgx_linux_x64_sdk_2.15.101.1.bin && \
-    echo -e 'no\n/opt/intel\n' | ./sgx_linux_x64_sdk_2.15.101.1.bin && \
-    rm sgx_linux_x64_sdk_2.15.101.1.bin
-
-# Set up environment for SGX
-ENV LD_LIBRARY_PATH=/opt/intel/sgxsdk/lib64:/opt/intel/sgxsdk/lib64/gdb:$LD_LIBRARY_PATH
-ENV PATH=/opt/intel/sgxsdk/bin:$PATH
-
 # Install Docker CLI
-RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release && \
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
     apt-get install -y docker-ce-cli
@@ -85,7 +72,7 @@ ENV PYTHONPATH=/app:$PYTHONPATH
 # Debug: Print directory contents and Python path
 RUN echo "Contents of /app:" && ls -R /app && \
     echo "PYTHONPATH: $PYTHONPATH" && \
-    echo "Python version:" && python --version && \
+    echo "Python version:" && python3 --version && \
     echo "Pip list:" && pip list
 
 # Copy entrypoint script and make it executable
