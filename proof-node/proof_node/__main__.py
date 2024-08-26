@@ -1,5 +1,3 @@
-import random
-import time
 import logging
 from flask import Flask, request, jsonify
 import docker
@@ -12,10 +10,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 docker_client = docker.from_env()
 
-def create_manifest(image_url, env_vars):
-    manifest_content = f"""
+def create_manifest(env_vars):
+    manifest_content = """
 loader.entrypoint = "file:{{ gramine.libos }}"
-libos.entrypoint = "/usr/local/bin/python"
+libos.entrypoint = "/usr/bin/python3"
 
 loader.log_level = "{{ log_level }}"
 
@@ -26,7 +24,6 @@ fs.mounts = [
   {{ path = "/usr", uri = "file:/usr" }},
   {{ path = "/etc", uri = "file:/etc" }},
   {{ path = "/bin", uri = "file:/bin" }},
-  {{ path = "/root", uri = "file:/root" }},
 ]
 
 sgx.debug = true
@@ -36,13 +33,12 @@ sgx.thread_num = 4
 
 sgx.trusted_files = [
   "file:{{ gramine.libos }}",
-  "file:/usr/local/bin/python",
+  "file:/usr/bin/python3",
   "file:/usr/lib/python3.9/",
-  "file:/usr/local/lib/python3.9/",
   "file:/lib/x86_64-linux-gnu/",
 ]
 
-loader.env.PYTHON_SCRIPT = "{env_vars.get('PYTHON_SCRIPT', 'print("No script provided")')}"
+loader.env.PYTHON_SCRIPT = "{env_vars.get('PYTHON_SCRIPT', 'print(\"No script provided\")')}"
 """
 
     for key, value in env_vars.items():
@@ -54,30 +50,26 @@ loader.env.PYTHON_SCRIPT = "{env_vars.get('PYTHON_SCRIPT', 'print("No script pro
 @app.route('/spunup', methods=['POST'])
 def spunup():
     data = request.json
-    if not data or 'image_url' not in data or 'env_vars' not in data:
-        return jsonify({"error": "Missing image_url or env_vars"}), 400
+    if not data or 'env_vars' not in data:
+        return jsonify({"error": "Missing env_vars"}), 400
 
-    image_url = data['image_url']
     env_vars = data['env_vars']
 
     try:
-        # Pull the image
-        docker_client.images.pull(image_url)
-
         # Create a temporary directory to store the manifest
         with tempfile.TemporaryDirectory() as tmpdirname:
             # Create the manifest file
-            manifest_content = create_manifest(image_url, env_vars)
+            manifest_content = create_manifest(env_vars)
             manifest_path = os.path.join(tmpdirname, 'python.manifest')
             with open(manifest_path, 'w') as f:
                 f.write(manifest_content)
 
             # Run the container with Gramine
             container = docker_client.containers.run(
-                image_url,
+                "proof-node:latest",  # Use our custom image
                 command=[
                     "gramine-sgx",
-                    "python",
+                    "python3",
                     "-c",
                     env_vars.get('PYTHON_SCRIPT', 'print("No script provided")')
                 ],
