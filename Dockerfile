@@ -65,10 +65,12 @@ RUN apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-releas
     apt-get update && \
     apt-get install -y docker-ce-cli
 
-# Install GSC
-RUN git clone https://github.com/gramineproject/gsc.git && \
-    cd gsc && \
-    python3 -m pip install .
+# Clone GSC repository and add it to PATH
+RUN git clone https://github.com/gramineproject/gsc.git /opt/gsc
+ENV PATH="/opt/gsc:$PATH"
+
+# Install GSC dependencies
+RUN pip install docker jinja2 tomli tomli-w pyyaml
 
 # Copy the project files
 COPY . /app
