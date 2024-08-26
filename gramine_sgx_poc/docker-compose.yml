@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  flask-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/aesmd:/var/run/aesmd
+    devices:
+      - /dev/sgx_enclave
+    environment:
+      - SGX_AESM_ADDR=1
+
+  env-printer:
+    build:
+      context: .
+      dockerfile: Dockerfile.env-printer
+    image: env-printer:latest
