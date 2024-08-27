@@ -29,6 +29,9 @@ COPY pyproject.toml poetry.lock* /app/
 RUN poetry config virtualenvs.create false \
   && poetry install --no-interaction --no-ansi
 
+# Install Flask and other required packages
+RUN pip install flask requests docker
+
 COPY . /app
 
 # Make sure entrypoint.sh is executable
@@ -38,7 +41,7 @@ RUN chmod +x /app/entrypoint.sh
 FROM base AS non-sgx
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["poetry", "run", "python3", "-m", "proof_node"]
+CMD ["python", "-m", "proof_node.flask_server"]
 
 # SGX stage
 FROM base AS sgx
@@ -56,7 +59,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends gramine libsgx-launch libsgx-urts libsgx-quote-ex
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["poetry", "run", "python3", "-m", "proof_node"]
+CMD ["python", "-m", "proof_node.flask_server"]
 
 # Final stage
 ARG SGX=false
