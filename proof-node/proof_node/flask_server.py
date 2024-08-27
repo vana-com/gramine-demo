@@ -58,8 +58,9 @@ def run_signed_container(image_path, environment):
         'detach': True,
         'name': container_name,
         'environment': environment,
-        'command': ["/bin/sh", "-c", "ls -l /dev/sgx* && env && gramine-sgx-get-token --sig /my_proof.sig --output /my_proof.token && gramine-sgx python /my_proof.py"]
+        'command': ["/bin/sh", "-c", "ls -l /dev/sgx* && env && ls -l /dev/isgx && gramine-sgx-get-token --sig /my_proof.sig --output /my_proof.token && gramine-sgx python /my_proof.py"]
     }
+
     if devices:
         run_kwargs['devices'] = devices
     if volumes:
