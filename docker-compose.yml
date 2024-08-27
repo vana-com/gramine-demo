@@ -8,12 +8,12 @@ services:
     container_name: ${SGX:+sgx_}proof_node
     ports:
       - "5001:5001"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /var/run/aesmd:/var/run/aesmd
-      - /mnt/sealed:/mnt/sealed
     devices:
       - /dev/sgx_enclave:/dev/sgx_enclave
+      - /dev/sgx_provision:/dev/sgx_provision
+    volumes:
+      - /var/run/aesmd:/var/run/aesmd
+      - /mnt/sealed:/mnt/sealed
     environment:
       - MAX_VALIDATORS=3
       - DOCKER_HOST=unix:///var/run/docker.sock

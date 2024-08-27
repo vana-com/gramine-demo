@@ -36,21 +36,19 @@ def run_signed_container(image_path, environment):
         raise
 
     # Prepare SGX-specific configurations
-    sgx_enabled = os.environ.get('SGX') == 'true'
-    devices = ['/dev/sgx_enclave:/dev/sgx_enclave'] if sgx_enabled else None
+    sgx_enabled = os.environ.get('SGX', 'false').lower() == 'true'
+    devices = [
+        '/dev/sgx_enclave:/dev/sgx_enclave',
+        '/dev/sgx_provision:/dev/sgx_provision'
+    ] if sgx_enabled else None
     volumes = {
         '/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'},
         f'/mnt/sealed/{container_name}': {'bind': '/sealed', 'mode': 'rw'}
     } if sgx_enabled else None
 
-    # Include IAS_API_KEY in the environment variables
+    # Set up environment variables
     if sgx_enabled:
         environment['SGX_AESM_ADDR'] = '1'
-    ias_api_key = os.environ.get('IAS_API_KEY')
-    if ias_api_key:
-        environment['IAS_API_KEY'] = ias_api_key
-    else:
-        logger.warning("IAS_API_KEY not set in the environment")
 
     # Prepare run arguments
     run_kwargs = {
@@ -59,13 +57,21 @@ def run_signed_container(image_path, environment):
         'name': container_name,
         'environment': environment,
         'privileged': True,
-        'command': ["/bin/sh", "-c", "ls -l /dev/sgx* && env && ls -l /dev/isgx && gramine-sgx-get-token --sig /my_proof.sig --output /my_proof.token && gramine-sgx python /my_proof.py"]
+        'devices': devices,
+        'volumes': volumes,
+        'command': ["/bin/sh", "-c", """
+            echo "SGX devices:"; 
+            ls -l /dev/sgx*; 
+            echo "Environment:"; 
+            env; 
+            echo "AESM socket:"; 
+            ls -l /var/run/aesmd/aesm.socket; 
+            echo "Generating token:"; 
+            gramine-sgx-get-token --sig /my_proof.sig --output /my_proof.token; 
+            echo "Running proof:"; 
+            gramine-sgx python /my_proof.py
+        """]
     }
-
-    if devices:
-        run_kwargs['devices'] = devices
-    if volumes:
-        run_kwargs['volumes'] = volumes
 
     # Run the container
     try:
@@ -99,15 +105,19 @@ def run_proof():
         return jsonify({'error': 'Missing image_url'}), 400
 
     try:
+        logger.info(f"Received request to run proof with image URL: {image_url}")
+
         # Download the image
         image_path = download_image(image_url)
         logger.info(f"Downloaded image to: {image_path}")
 
         # Run the container
         exit_code, logs = run_signed_container(image_path, environment)
+        logger.info(f"Container finished with exit code: {exit_code}")
 
         # Clean up the downloaded image
         os.unlink(image_path)
+        logger.info(f"Cleaned up downloaded image: {image_path}")
 
         return jsonify({
             'status': 'success',
@@ -116,7 +126,7 @@ def run_proof():
         })
 
     except Exception as e:
-        logger.error(f"Error running proof: {str(e)}")
+        logger.error(f"Error running proof: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
