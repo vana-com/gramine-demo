@@ -10,10 +10,10 @@ services:
       - "5001:5001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${SGX_DEVICE:-${SGX:+/dev/sgx_enclave:/dev/sgx_enclave}/dev/null:/dev/sgx_enclave}
-      - ${AESMD_SOCKET:-${SGX:+/var/run/aesmd/aesm.socket:/var/run/aesmd}/dev/null:/var/run/aesmd}
+      - /var/run/aesmd:/var/run/aesmd
+      - /mnt/sealed:/mnt/sealed
     devices:
-      - ${SGX_DEVICE:-${SGX:+/dev/sgx_enclave:/dev/sgx_enclave}/dev/null:/dev/sgx_enclave}
+      - /dev/sgx_enclave:/dev/sgx_enclave
     environment:
       - MAX_VALIDATORS=3
       - DOCKER_HOST=unix:///var/run/docker.sock
