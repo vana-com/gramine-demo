@@ -4,7 +4,7 @@
 trap 'kill -TERM $PID' TERM INT
 
 # Start the Python application
-exec python3 "$@" &
+exec "$@" &
 
 PID=$!
 wait $PID
