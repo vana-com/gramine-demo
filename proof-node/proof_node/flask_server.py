@@ -40,30 +40,33 @@ def run_signed_container(image_path, environment):
     devices = ['/dev/sgx_enclave:/dev/sgx_enclave'] if sgx_enabled else None
     volumes = {
         '/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'},
-        f'/mnt/sealed/{container_name}': {'bind': '/sealed', 'mode': 'rw'},
-        '/gsc-my-proof/input': {'bind': '/input', 'mode': 'rw'},
-        '/gsc-my-proof/output': {'bind': '/output', 'mode': 'rw'}
+        f'/mnt/sealed/{container_name}': {'bind': '/sealed', 'mode': 'rw'}
     } if sgx_enabled else None
 
     # Include IAS_API_KEY in the environment variables
+    if sgx_enabled:
+        environment['SGX_AESM_ADDR'] = '1'
     ias_api_key = os.environ.get('IAS_API_KEY')
     if ias_api_key:
         environment['IAS_API_KEY'] = ias_api_key
+    else:
+        logger.warning("IAS_API_KEY not set in the environment")
 
-    if sgx_enabled:
-        environment['SGX_AESM_ADDR'] = '1'
+    # Prepare run arguments
+    run_kwargs = {
+        'image': image.id,
+        'detach': True,
+        'name': container_name,
+        'environment': environment,
+    }
+    if devices:
+        run_kwargs['devices'] = devices
+    if volumes:
+        run_kwargs['volumes'] = volumes
 
     # Run the container
     try:
-        container = client.containers.run(
-            image=image.id,
-            detach=True,
-            name=container_name,
-            devices=devices,
-            volumes=volumes,
-            environment=environment,
-            remove=False  # Changed to False
-        )
+        container = client.containers.run(**run_kwargs)
 
         # Wait for the container to finish
         result = container.wait()
