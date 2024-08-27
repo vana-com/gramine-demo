@@ -22,12 +22,18 @@ def download_image(url):
 
     return temp_file.name
 
+
 def run_signed_container(image_path, environment):
-    container_name = f"dynamic-proof-{os.path.basename(image_path)}"
+    container_name = f"dynamic-proof-{os.path.basename(image_path).replace('.tar.gz', '')}"
 
     # Load the image
-    with open(image_path, 'rb') as image_file:
-        client.images.load(image_file.read())
+    try:
+        with open(image_path, 'rb') as image_file:
+            image = client.images.load(image_file.read())[0]
+        logger.info(f"Loaded image: {image.tags}")
+    except Exception as e:
+        logger.error(f"Error loading image: {str(e)}")
+        raise
 
     # Prepare SGX-specific configurations
     sgx_enabled = os.environ.get('SGX') == 'true'
@@ -48,24 +54,29 @@ def run_signed_container(image_path, environment):
         environment['SGX_AESM_ADDR'] = '1'
 
     # Run the container
-    container = client.containers.run(
-        image=container_name,
-        detach=True,
-        name=container_name,
-        devices=devices,
-        volumes=volumes,
-        environment=environment,
-        remove=True
-    )
+    try:
+        container = client.containers.run(
+            image=image.id,
+            detach=True,
+            name=container_name,
+            devices=devices,
+            volumes=volumes,
+            environment=environment,
+            remove=True
+        )
 
-    # Wait for the container to finish and get the logs
-    result = container.wait()
-    logs = container.logs().decode('utf-8')
+        # Wait for the container to finish and get the logs
+        result = container.wait()
+        logs = container.logs().decode('utf-8')
 
-    logger.info(f"Container {container_name} finished with exit code {result['StatusCode']}")
-    logger.info(f"Container logs:\n{logs}")
+        logger.info(f"Container {container_name} finished with exit code {result['StatusCode']}")
+        logger.info(f"Container logs:\n{logs}")
 
-    return result['StatusCode'], logs
+        return result['StatusCode'], logs
+    except Exception as e:
+        logger.error(f"Error running container: {str(e)}")
+        raise
+
 
 @app.route('/run_proof', methods=['POST'])
 def run_proof():
@@ -79,6 +90,7 @@ def run_proof():
     try:
         # Download the image
         image_path = download_image(image_url)
+        logger.info(f"Downloaded image to: {image_path}")
 
         # Run the container
         exit_code, logs = run_signed_container(image_path, environment)
