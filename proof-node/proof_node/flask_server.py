@@ -62,15 +62,20 @@ def run_signed_container(image_path, environment):
             devices=devices,
             volumes=volumes,
             environment=environment,
-            remove=True
+            remove=False  # Changed to False
         )
 
-        # Wait for the container to finish and get the logs
+        # Wait for the container to finish
         result = container.wait()
+
+        # Get the logs
         logs = container.logs().decode('utf-8')
 
         logger.info(f"Container {container_name} finished with exit code {result['StatusCode']}")
         logger.info(f"Container logs:\n{logs}")
+
+        # Remove the container
+        container.remove()
 
         return result['StatusCode'], logs
     except Exception as e:
