@@ -7,7 +7,7 @@ services:
     image: ${SGX:+sgx_}proof_node
     container_name: ${SGX:+sgx_}proof_node
     ports:
-      - "5000:5000"
+      - "5001:5001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${SGX_DEVICE:-${SGX:+/dev/sgx_enclave:/dev/sgx_enclave}/dev/null:/dev/sgx_enclave}
