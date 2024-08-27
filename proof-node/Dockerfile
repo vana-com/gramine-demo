@@ -11,10 +11,13 @@ ENV TZ=Etc/UTC
 RUN apt-get update && apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
-    apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip curl lsb-release gnupg
+    apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip curl lsb-release gnupg python3.12-distutils
 
 # Set Python 3.12 as the default python3
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+
+# Install pip for Python 3.12
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py
 
 # Install Poetry using the official installation script
 RUN curl -sSL https://install.python-poetry.org | python3 -
@@ -29,6 +32,9 @@ COPY pyproject.toml poetry.lock* /app/
 RUN poetry config virtualenvs.create false \
   && poetry install --no-interaction --no-ansi
 
+# Install Flask and other required packages, ignoring installed packages
+RUN pip3 install --ignore-installed flask requests docker
+
 COPY . /app
 
 # Make sure entrypoint.sh is executable
@@ -38,7 +44,7 @@ RUN chmod +x /app/entrypoint.sh
 FROM base AS non-sgx
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["poetry", "run", "python3", "-m", "proof_node"]
+CMD ["poetry", "run", "python3", "-m", "proof_node.flask_server"]
 
 # SGX stage
 FROM base AS sgx
@@ -56,7 +62,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends gramine libsgx-launch libsgx-urts libsgx-quote-ex
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["poetry", "run", "python3", "-m", "proof_node"]
+CMD ["poetry", "run", "python3", "-m", "proof_node.flask_server"]
 
 # Final stage
 ARG SGX=false
