@@ -12,6 +12,7 @@ client = docker.from_env()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+
 def download_image(url):
     response = requests.get(url, stream=True)
     response.raise_for_status()
@@ -24,6 +25,9 @@ def download_image(url):
 
 
 def run_signed_container(image_path, environment):
+    if client is None:
+        raise Exception("Docker client is not initialized")
+
     container_name = f"dynamic-proof-{os.path.basename(image_path).replace('.tar.gz', '')}"
 
     # Load the image
@@ -44,7 +48,7 @@ def run_signed_container(image_path, environment):
     volumes = {
         '/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'},
         f'/mnt/sealed/{container_name}': {'bind': '/sealed', 'mode': 'rw'}
-    } if sgx_enabled else None
+    } if sgx_enabled else {}
 
     # Set up environment variables
     if sgx_enabled:
