@@ -39,64 +39,86 @@ def run_signed_container(image_path, environment):
         logger.error(f"Error loading image: {str(e)}")
         raise
 
-    # Prepare SGX-specific configurations
-    sgx_enabled = os.environ.get('SGX', 'false').lower() == 'true'
-    devices = [
-        '/dev/sgx_enclave:/dev/sgx_enclave',
-        '/dev/sgx_provision:/dev/sgx_provision'
-    ] if sgx_enabled else None
-    volumes = {
-        '/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'},
-        f'/mnt/sealed/{container_name}': {'bind': '/sealed', 'mode': 'rw'}
-    } if sgx_enabled else {}
+    # Create temporary directories for input and output
+    with tempfile.TemporaryDirectory() as temp_dir:
+        input_dir = os.path.join(temp_dir, 'input')
+        output_dir = os.path.join(temp_dir, 'output')
+        os.makedirs(input_dir)
+        os.makedirs(output_dir)
 
-    # Set up environment variables
-    if sgx_enabled:
-        environment['SGX_AESM_ADDR'] = '1'
+        # Create sample input files
+        with open(os.path.join(input_dir, 'user123.json'), 'w') as f:
+            json.dump({"data": "hello world"}, f)
+        with open(os.path.join(input_dir, 'user456.json'), 'w') as f:
+            json.dump({"data": "goodnight world"}, f)
 
-    # Prepare run arguments
-    run_kwargs = {
-        'image': image.id,
-        'detach': True,
-        'name': container_name,
-        'environment': environment,
-        'privileged': True,
-        'devices': devices,
-        'volumes': volumes,
-        'command': ["/bin/sh", "-c", """
-            echo "SGX devices:"; 
-            ls -l /dev/sgx*; 
-            echo "Environment:"; 
-            env; 
-            echo "AESM socket:"; 
-            ls -l /var/run/aesmd/aesm.socket; 
-            echo "Generating token:"; 
-            gramine-sgx-get-token --sig /my_proof.sig --output /my_proof.token; 
-            echo "Running proof:"; 
-            gramine-sgx python /my_proof.py
-        """]
-    }
+        # Prepare SGX-specific configurations
+        sgx_enabled = os.environ.get('SGX', 'false').lower() == 'true'
+        devices = [
+            '/dev/sgx_enclave:/dev/sgx_enclave',
+            '/dev/sgx_provision:/dev/sgx_provision'
+        ] if sgx_enabled else None
+        volumes = {
+            input_dir: {'bind': '/input', 'mode': 'ro'},
+            output_dir: {'bind': '/output', 'mode': 'rw'},
+            '/var/run/aesmd': {'bind': '/var/run/aesmd', 'mode': 'rw'},
+            f'/mnt/sealed/{container_name}': {'bind': '/sealed', 'mode': 'rw'}
+        }
 
-    # Run the container
-    try:
-        container = client.containers.run(**run_kwargs)
+        # Set up environment variables
+        if sgx_enabled:
+            environment['SGX_AESM_ADDR'] = '1'
 
-        # Wait for the container to finish
-        result = container.wait()
+        # Prepare run arguments
+        run_kwargs = {
+            'image': image.id,
+            'detach': True,
+            'name': container_name,
+            'environment': environment,
+            'privileged': True,
+            'devices': devices,
+            'volumes': volumes,
+            'command': ["/bin/sh", "-c", """
+                echo "SGX devices:"; 
+                ls -l /dev/sgx*; 
+                echo "Environment:"; 
+                env; 
+                echo "AESM socket:"; 
+                ls -l /var/run/aesmd/aesm.socket; 
+                echo "Input directory:";
+                ls -l /input;
+                echo "Generating token:"; 
+                gramine-sgx-get-token --sig /my_proof.sig --output /my_proof.token; 
+                echo "Running proof:"; 
+                gramine-sgx python /my_proof.py
+            """]
+        }
 
-        # Get the logs
-        logs = container.logs().decode('utf-8')
+        # Run the container
+        try:
+            container = client.containers.run(**run_kwargs)
 
-        logger.info(f"Container {container_name} finished with exit code {result['StatusCode']}")
-        logger.info(f"Container logs:\n{logs}")
+            # Wait for the container to finish
+            result = container.wait()
 
-        # Remove the container
-        container.remove()
+            # Get the logs
+            logs = container.logs().decode('utf-8')
 
-        return result['StatusCode'], logs
-    except Exception as e:
-        logger.error(f"Error running container: {str(e)}")
-        raise
+            logger.info(f"Container {container_name} finished with exit code {result['StatusCode']}")
+            logger.info(f"Container logs:\n{logs}")
+
+            # Check the output directory
+            logger.info("Output directory contents:")
+            for filename in os.listdir(output_dir):
+                logger.info(f" - {filename}")
+
+            # Remove the container
+            container.remove()
+
+            return result['StatusCode'], logs
+        except Exception as e:
+            logger.error(f"Error running container: {str(e)}")
+            raise
 
 
 @app.route('/run_proof', methods=['POST'])
