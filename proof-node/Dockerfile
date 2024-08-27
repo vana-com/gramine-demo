@@ -32,8 +32,8 @@ COPY pyproject.toml poetry.lock* /app/
 RUN poetry config virtualenvs.create false \
   && poetry install --no-interaction --no-ansi
 
-# Install Flask and other required packages
-RUN pip3 install flask requests docker
+# Install Flask and other required packages, ignoring installed packages
+RUN pip3 install --ignore-installed flask requests docker
 
 COPY . /app
 
